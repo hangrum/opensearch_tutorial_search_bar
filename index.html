@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Autocomplete Search</title>
+    <style>
+        /* 기본 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #searchBox {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Search Result</h1>
+    <input type="text" id="searchBox" placeholder="Search" />
+
+    <table>
+        <thead>
+            <tr>
+                <th>Dest. City</th>
+                <th>Dest. Country</th>
+                <th>From. City</th>
+                <th>From. Country</th>
+                <th>Flight No.</th>
+                <th>Flight</th>
+            </tr>
+        </thead>
+        <tbody id="resultsTable">
+        </tbody>
+    </table>
+
+    <script>
+        let debounceTimeout;
+
+        document.getElementById("searchBox").addEventListener("input", () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(performSearch, 300);
+        });
+
+        async function performSearch() {
+            const query = document.getElementById("searchBox").value.trim();
+
+            if (!query) {
+                document.getElementById("resultsTable").innerHTML = "";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:60022/autocomplete", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const resultsTable = document.getElementById("resultsTable");
+                resultsTable.innerHTML = "";
+
+                if (response.ok) {
+                    const results = await response.json();
+                    if (results.length === 0) {
+                        const row = document.createElement("tr");
+                        const noResults = document.createElement("td");
+                        noResults.colSpan = 6;
+                        noResults.textContent = "No results found.";
+                        row.appendChild(noResults);
+                        resultsTable.appendChild(row);
+                    } else {
+                        results.forEach(hit => {
+                            const row = document.createElement("tr");
+
+                            const destCity = document.createElement("td");
+                            destCity.textContent = hit._source.DestCityName || "N/A";
+
+                            const destCountry = document.createElement("td");
+                            destCountry.textContent = hit._source.DestCountry || "N/A";
+
+                            const originCity = document.createElement("td");
+                            originCity.textContent = hit._source.OriginCityName || "N/A";
+
+                            const originCountry = document.createElement("td");
+                            originCountry.textContent = hit._source.OriginCountry || "N/A";
+
+                            const flightNum = document.createElement("td");
+                            flightNum.textContent = hit._source.FlightNum || "N/A";
+
+                            const carrier = document.createElement("td");
+                            carrier.textContent = hit._source.Carrier || "N/A";
+
+                            row.appendChild(destCity);
+                            row.appendChild(destCountry);
+                            row.appendChild(originCity);
+                            row.appendChild(originCountry);
+                            row.appendChild(flightNum);
+                            row.appendChild(carrier);
+
+                            resultsTable.appendChild(row);
+                        });
+                    }
+                } else {
+                    const row = document.createElement("tr");
+                    const noResults = document.createElement("td");
+                    noResults.colSpan = 6;
+                    noResults.textContent = "No Result Found.";
+                    row.appendChild(noResults);
+                    resultsTable.appendChild(row);
+                }
+            } catch (error) {
+                console.error("An error occurred while fetching data.", error);
+            }
+        }
+    </script>
+</body>
+</html>
+
